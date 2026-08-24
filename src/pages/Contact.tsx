@@ -20,6 +20,11 @@ export default function Contact() {
       return;
     }
 
+    if (!navigator.onLine) {
+      setErrorMessage("You're offline. Please check your internet connection and try again.");
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 

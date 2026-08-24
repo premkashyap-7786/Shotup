@@ -1,18 +1,53 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 import { FadeIn } from '../components/Shared';
+
+const CONTACT_FORM_ENDPOINT = import.meta.env.VITE_CONTACT_FORM_ENDPOINT as string | undefined;
 
 export default function Contact() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [showToast, setShowToast] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email) {
+    if (!formData.name || !formData.email || !formData.message) return;
+
+    if (!CONTACT_FORM_ENDPOINT) {
+      setErrorMessage('Contact form is not configured yet. Please email us directly.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch(CONTACT_FORM_ENDPOINT, {
+        method: 'POST',
+        // Using text/plain avoids a CORS preflight request, which Google Apps
+        // Script Web Apps do not reliably support for cross-origin fetch calls.
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Request failed');
+      }
+
+      const result = await response.json().catch(() => ({ success: true }));
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Submission failed');
+      }
+
       setShowToast(true);
       setFormData({ name: '', email: '', message: '' });
       setTimeout(() => setShowToast(false), 4000);
+    } catch (err) {
+      setErrorMessage("Something went wrong sending your message. Please try again or email us directly.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -47,15 +82,13 @@ export default function Contact() {
             </div>
             <div>
               <h4 className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mb-3">Direct Inquiry</h4>
-              <p className="text-sm font-medium tracking-widest hover:text-[#df1c1c] transition-colors cursor-pointer mb-2">hello@shotup.in</p>
-              <p className="text-sm font-medium tracking-widest">+91 98765 43210</p>
+              <a href="mailto:hello@shotup.in" className="block text-sm font-medium tracking-widest hover:text-[#df1c1c] transition-colors cursor-pointer mb-2">hello@shotup.in</a>
+              <a href="tel:+917905794291" className="block text-sm font-medium tracking-widest hover:text-[#df1c1c] transition-colors">+91 79057 94291</a>
             </div>
             <div>
               <h4 className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mb-3">Socials</h4>
               <div className="flex gap-6">
-                <a href="#" className="text-xs font-medium tracking-widest hover:text-[#df1c1c] transition-colors uppercase">Instagram</a>
-                <a href="#" className="text-xs font-medium tracking-widest hover:text-[#df1c1c] transition-colors uppercase">Behance</a>
-                <a href="#" className="text-xs font-medium tracking-widest hover:text-[#df1c1c] transition-colors uppercase">Twitter</a>
+                <a href="/" className="text-xs font-medium tracking-widest hover:text-[#df1c1c] transition-colors uppercase">Instagram</a>
               </div>
             </div>
           </div>
@@ -89,8 +122,18 @@ export default function Contact() {
               onChange={(e) => setFormData({...formData, message: e.target.value})}
               className="bg-transparent border-b border-white/20 py-4 text-xs tracking-widest focus:outline-none focus:border-[#df1c1c] transition-colors resize-none"
             ></textarea>
-            <button type="submit" className="mt-4 border border-white py-5 text-xs tracking-widest font-bold uppercase hover:bg-white hover:text-black transition-colors">
-              Submit Inquiry
+            {errorMessage && (
+              <div className="flex items-center gap-2 text-[#df1c1c] text-xs tracking-widest">
+                <AlertCircle size={16} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="mt-4 border border-white py-5 text-xs tracking-widest font-bold uppercase hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white"
+            >
+              {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
             </button>
           </form>
         </FadeIn>

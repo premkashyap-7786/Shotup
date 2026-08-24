@@ -67,20 +67,60 @@ function appendToSheet(name, email, message) {
 }
 
 function sendNotificationEmail(name, email, message) {
-  const subject = 'New Inquiry — Shotup.in — ' + name;
-  const body =
-    'You have a new contact form inquiry from shotup.in:\n\n' +
+  const sheetUrl = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+  const subject = 'New Inquiry from ' + name + ' — Shotup.in';
+
+  const htmlBody =
+    '<div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto; background: #0a0a0a; color: #ffffff; border-radius: 10px; overflow: hidden;">' +
+      '<div style="background: #111111; padding: 24px 28px; border-bottom: 3px solid #df1c1c;">' +
+        '<span style="font-size: 20px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">SHOTUP</span>' +
+        '<span style="display:inline-block; width:8px; height:8px; background:#df1c1c; margin-left:6px; vertical-align:middle;"></span>' +
+        '<div style="font-size: 11px; color: #9ca3af; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">New Website Inquiry</div>' +
+      '</div>' +
+      '<div style="padding: 28px;">' +
+        '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' +
+          '<tr>' +
+            '<td style="padding: 8px 0; color: #9ca3af; width: 90px; vertical-align: top;">Name</td>' +
+            '<td style="padding: 8px 0; color: #ffffff; font-weight: 600;">' + escapeHtml(name) + '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<td style="padding: 8px 0; color: #9ca3af; vertical-align: top;">Email</td>' +
+            '<td style="padding: 8px 0;"><a href="mailto:' + encodeURIComponent(email) + '" style="color: #df1c1c; text-decoration: none;">' + escapeHtml(email) + '</a></td>' +
+          '</tr>' +
+          '<tr>' +
+            '<td style="padding: 8px 0; color: #9ca3af; vertical-align: top;">Message</td>' +
+            '<td style="padding: 8px 0; color: #ffffff; white-space: pre-wrap;">' + escapeHtml(message) + '</td>' +
+          '</tr>' +
+        '</table>' +
+        '<div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #262626;">' +
+          '<a href="' + sheetUrl + '" style="display: inline-block; background: #ffffff; color: #0a0a0a; text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 12px 20px; border-radius: 4px;">View All Inquiries →</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  const plainBody =
+    'New inquiry from ' + name + ' via shotup.in\n\n' +
     'Name: ' + name + '\n' +
     'Email: ' + email + '\n' +
     'Message:\n' + message + '\n\n' +
-    'Reply directly to this sender at: ' + email;
+    'View all inquiries: ' + sheetUrl;
 
   MailApp.sendEmail({
     to: NOTIFY_EMAIL,
     replyTo: email,
     subject: subject,
-    body: body,
+    body: plainBody,
+    htmlBody: htmlBody,
   });
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function jsonResponse(obj) {
